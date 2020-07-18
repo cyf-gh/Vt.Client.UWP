@@ -1,0 +1,29 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" 
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:BiliBili.UWP">
+    <!--背景颜色-->
+    <SolidColorBrush  x:Key="Bili-Background" Color="#FFE9E9E9" />
+    <!--前景颜色-->
+    <SolidColorBrush x:Key="Bili-ForeColor" Color="#FF9C27C4" />
+    <!--控件颜色-->
+    <SolidColorBrush x:Key="Bili-Color" Color="#FF9C27C4" />
+    <!--深前景颜色-->
+    <SolidColorBrush x:Key="Bili-ForeColor-Dark" Color="#FF8B09B8" />
+    <!--普通字体颜色-->
+    <SolidColorBrush x:Key="Bili-FontColor" Color="#FF131313" />
+    <!--浅字体颜色-->
+    <SolidColorBrush x:Key="Bili-FontColor-Light" Color="#FF9C9C9C" />
+    <!--边框颜色-->
+    <SolidColorBrush x:Key="Bili-BorderColor" Color="Gray" />
+    <SolidColorBrush x:Key="Bili-List-Background" Color="#7FFFFFFF" />
+
+    <SolidColorBrush x:Key="Bili-MenuBack" Color="White"></SolidColorBrush>
+    <!--高亮文本颜色-->
+    <SolidColorBrush x:Key="Bili-Highlight-TextColor" Color="#FF9C27C4" />
+    
+    <SolidColorBrush  x:Key="Main-Background" Color="White" />
+    <SolidColorBrush  x:Key="Main-ForeColor" Color="#FF9C27C4" />
+    <SolidColorBrush  x:Key="Main-ForeColor-No" Color="#FFD4D4D4" />
+    <SolidColorBrush  x:Key="SystemControlHighlightAltAccentBrush" Color="#FF9C27C4" />
+</ResourceDictionary>

@@ -14,27 +14,56 @@ namespace Vt.Client.Corel {
         static public VtClientCore Handle = new VtClientCore();
     }
 
+    public enum VtStatus {
+        Idle,
+        InLobbyGuest,
+        InLobbyHost
+    }
+
     public class VtClientCore {
-        static public PlayerEvents PlayerEvents { get; set; }
+        public PlayerEvents PlayerEvents { get; set; }
+
+        public bool IsHost = false;
+        private VtStatus Status;
+        private IPPort curServer;
+
         public VtClientCore()
         {
             // fake
             curServer = new IPPort();
+            Status = VtStatus.Idle;
         }
 
-        public void RefreshVideoInfo( string vvpDataJson, string infoJson )
+        public VtStatus GetStatus()
+        {
+            return Status;
+        }
+        /// <summary>
+        /// 发送视频Host视频信息
+        /// </summary>
+        /// <param name="lsJson"></param>
+        /// <param name="index"></param>
+        public void SendVideoData( string lsJson, int index )
+        {
+            /// TODO:通过某种协议发送报文
+        }
+        /// <summary>
+        /// 创建房间并发送报文
+        /// </summary>
+        /// <param name="name"></param>
+        public void CreateLobby( string name )
+        {
+            Status = VtStatus.InLobbyHost;
+        }
+        /// <summary>
+        /// 进入房间
+        /// </summary>
+        /// <param name="lobbyName"></param>
+        /// <param name="passwd"></param>
+        public void EnterLobby( string lobbyName, string passwd )
         {
 
         }
-
-        private PlayerEvents GetPlayerEvents() {
-            if ( PlayerEvents == null ) {
-                return null;
-            }
-            return PlayerEvents as PlayerEvents;
-        }
-        private IPPort curServer;
-
         public void ChangeServer( string ipOrDomain, string tcp, string udp )
         {
             string ip = Regex.Match( ipOrDomain, @"^[a-zA-Z0-9]+([a-zA-Z0-9\-\.]+)?\.$" ).Success ? DNSHelper.ParseIPFromDomain( ipOrDomain ) : ipOrDomain;

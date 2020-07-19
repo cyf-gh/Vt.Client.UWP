@@ -41,13 +41,14 @@ namespace Vt.Client.Core {
 
         /// <summary>
         /// 同时处理房主与客人的事件，因为房主永远会收到OK
+        /// Vt.Client主循环
         /// </summary>
         private void sendLocationPermantly()
         {
             while ( !stopFlag ) {
                 try {
                     Console.WriteLine( playerEvents.GetCurrentPlayTimeLocation() );
-                    Thread.Sleep( 900 );
+                    Thread.Sleep( 900 ); // 发送间隔
                     var recv = synccer.SendMessage(
                         protocolMaker.MakePackageMsg(
                             lobbyName,

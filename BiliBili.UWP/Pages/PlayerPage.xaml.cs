@@ -74,8 +74,7 @@ namespace BiliBili.UWP.Pages
     /// </summary>
     public sealed partial class PlayerPage : Page
     {
-        #region VT_CLIENT
-            PlayerEvents playerEvents = new PlayerEvents();
+        #region VT_CLIENT_PLAYER_EVENTS
             void Play()
             {
                 mediaElement.MediaPlayer.Play();
@@ -111,6 +110,10 @@ namespace BiliBili.UWP.Pages
                     return;
                 }
                 gv_play.SelectedIndex += 1;
+            }
+            void ExitPlayer()
+            {
+                this.Frame.GoBack();
             }
         #endregion
 
@@ -166,14 +169,6 @@ namespace BiliBili.UWP.Pages
         #region MediaPlayer事件
         private async void MediaPlayer_MediaOpened(MediaPlayer sender, object args)
         {
-            #region VT_CLIENT
-                playerEvents.JumpToCurrentLocation += JumpToCurrentLocation;
-                playerEvents.Pause += Pause;
-                playerEvents.Play += Play;
-                playerEvents.GetCurrentPlayTimeLocation += GetCurrentPlayTimeLocation;
-                playerEvents.IsPause += IsPause;
-                VtClientCore.PlayerEvents = playerEvents;
-            #endregion
             await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, async () =>
             {
 
@@ -520,6 +515,16 @@ namespace BiliBili.UWP.Pages
         private DisplayRequest dispRequest = null;//保持屏幕常亮
         protected async override void OnNavigatedTo(NavigationEventArgs e)
         {
+            #region VT_CLIENT_BIND_PLAYER_EVENTS
+                VtCore.Handle.PlayerEvents.JumpToCurrentLocation += JumpToCurrentLocation;
+                VtCore.Handle.PlayerEvents.Pause += Pause;
+                VtCore.Handle.PlayerEvents.Play += Play;
+                VtCore.Handle.PlayerEvents.GetCurrentPlayTimeLocation += GetCurrentPlayTimeLocation;
+                VtCore.Handle.PlayerEvents.IsPause += IsPause;
+                VtCore.Handle.PlayerEvents.NextP += NextP;
+                VtCore.Handle.PlayerEvents.PrevP += PrevP;
+                VtCore.Handle.PlayerEvents.ExitPlayer += ExitPlayer;
+            #endregion
             base.OnNavigatedTo(e);
             CoreWindow.GetForCurrentThread().KeyDown += PlayerPage_KeyDown;
             this.Frame.Visibility = Visibility.Visible;
@@ -2230,9 +2235,6 @@ namespace BiliBili.UWP.Pages
 
         private void MTC_ExitPlayer(object sender, EventArgs e)
         {
-            #region VT_CLIENT
-                VtClientCore.PlayerEvents = null;
-            #endregion
             this.Frame.GoBack();
         }
 

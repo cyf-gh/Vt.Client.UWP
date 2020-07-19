@@ -1002,6 +1002,9 @@ namespace BiliBili.UWP.Pages
                     }
                 }
 
+                #region VT_CLIENT_REFRESH_VIDEO_INFO
+                #endregion
+
                 MessageCenter.SendNavigateTo(NavigateMode.Play, typeof(PlayerPage), new object[] { ls, (gv_Play.ItemsSource as List<pagesModel>).IndexOf(info) });
                 PostHistory();
             }
@@ -1274,20 +1277,13 @@ namespace BiliBili.UWP.Pages
         {
             var info = (gv_Play.ItemsSource as List<pagesModel>).FirstOrDefault(x => x.cid == (long)last_view.Tag);
 
-            OpenPlayer( info);
+            OpenPlayer( info );
         }
-        private void OpenPlayer(pagesModel info)
+
+        public void OpenPlayer(pagesModel info)
         {
             #region VT_CLIENT_REFRESH_VIDEO_INFO
-            // send info and data json
-            VideoViewPageData vvpData = new VideoViewPageData {
-                isMovie = isMovie,
-                isBVID = isBVID,
-                isSeason = isSeason,
-                _aid = _aid,
-                _bvid = _bvid
-            };
-            VtCore.Handle.RefreshVideoInfo( JsonConvert.SerializeObject( vvpData ), JsonConvert.SerializeObject( info ) );
+
             #endregion
 
             List<PlayerModel> ls = new List<PlayerModel>();

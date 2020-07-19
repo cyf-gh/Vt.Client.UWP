@@ -6,7 +6,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\stLib.Net\stLib\stLib.csproj" />
-    <ProjectReference Include="..\Vt.Client\Vt.Client.csproj" />
     <ProjectReference Include="..\YPM.Net\YPM.Net\YPM.Net.csproj" />
   </ItemGroup>
 

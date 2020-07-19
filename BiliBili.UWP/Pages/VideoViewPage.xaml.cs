@@ -738,10 +738,6 @@ namespace BiliBili.UWP.Pages
                 Down_ComBar.Visibility = Visibility.Visible;
                 com_bar.Visibility = Visibility.Collapsed;
             }
-
-
-
-
         }
 
         private void btn_Cancel_Click(object sender, RoutedEventArgs e)
@@ -750,7 +746,6 @@ namespace BiliBili.UWP.Pages
             gv_Play.IsItemClickEnabled = true;
             Down_ComBar.Visibility = Visibility.Collapsed;
             com_bar.Visibility = Visibility.Visible;
-
         }
 
         private async void btn_Ok_Click(object sender, RoutedEventArgs e)

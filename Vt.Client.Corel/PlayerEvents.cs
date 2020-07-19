@@ -13,6 +13,7 @@ namespace Vt.Client.Core {
         public delegate void _NextP();
         public delegate void _PrevP();
         public delegate void _ExitPlayer();
+        public delegate void _SelectP( int index );
         public delegate void _JumpToCurrentLocation(string recv);
         /// <summary>
         /// 当有新视频时打开新视频
@@ -29,6 +30,7 @@ namespace Vt.Client.Core {
         public _OpenNewVideo OpenNewVideo { get; set; }
         public _NextP NextP { get; set; }
         public _PrevP PrevP { get; set; }
-        public _ExitPlayer ExitPlayer { get; set; }
+        public _ExitPlayer ExitVideo { get; set; }
+        public _SelectP SelectP { get; set; }
     }
 }

@@ -35,7 +35,7 @@ namespace BiliBili.UWP.Pages.Vt.Client {
 
         private void Page_Loading( FrameworkElement sender, Object args )
         {
-            VtCore.Handle.PlayerEvents.OpenNewVideo = StaticEventDef.OpenNewVideo;
+            VtCore.Handle.PlayerEvents.OpenNewVideo += StaticEventDef.OpenNewVideo;
             VtCore.Handle.ChangeServer( tb_IpOrDomain.Text, tb_TcpPort.Text, tb_UdpPort.Text );
             LoadLobbies();
         }
@@ -76,8 +76,10 @@ namespace BiliBili.UWP.Pages.Vt.Client {
             }
             // TODO: 创建房间
             string lobbyName = $"{name}'s lobby";
-            VtCore.Handle.CreateLobby( lobbyName );
-            txt_status.Text = lobbyName;
+            Random random = new Random(Convert.ToInt32(Guid.NewGuid().ToString()));
+            string passwd = random.Next( 1000, 9999 ).ToString();
+            await VtCore.Handle.CreateLobby( name, lobbyName, passwd );
+            txt_status.Text = $"房间名：{lobbyName}\n密码：{passwd}";
         }
 
         private async Task<string> getUserName( string mid )
@@ -104,6 +106,11 @@ namespace BiliBili.UWP.Pages.Vt.Client {
         private void list_Lobbies_ItemClick( Object sender, ItemClickEventArgs e )
         {
 
+        }
+
+        private void btn_RefreshLobbies_Click( Object sender, RoutedEventArgs e )
+        {
+            LoadLobbies();
         }
     }
 }

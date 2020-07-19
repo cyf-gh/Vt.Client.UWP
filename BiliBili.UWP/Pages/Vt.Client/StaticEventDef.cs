@@ -26,6 +26,7 @@ namespace BiliBili.UWP.Pages.Vt.Client {
                 MessageCenter.SendNavigateTo( 
                     NavigateMode.Play, typeof( PlayerPage ), 
                     new object[] { JsonConvert.DeserializeObject<List<PlayerModel>>( lsJson ), index } ); // NEED_TEST
+                VtCore.Handle.SetNewVideoMd5( lsJson, index );
             }
         }
     }

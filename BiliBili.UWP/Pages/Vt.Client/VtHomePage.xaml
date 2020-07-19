@@ -11,13 +11,14 @@
         <StackPanel>
             <Grid  Background="{ThemeResource Bili-List-Background}" Height="1000" Width="1493">
                 <ListView x:Name="list_Lobbies" HorizontalAlignment="Left" Height="242" Margin="10,128,0,0" VerticalAlignment="Top" Width="286" Background="White" ItemClick="list_Lobbies_ItemClick"/>
-                <Button x:Name="btn_CreateLobby" Content="创建房间" Margin="10,375,0,0" VerticalAlignment="Top" Height="40" Width="109" Click="btn_CreateLobby_Click"/>
+                <Button x:Name="btn_CreateLobby" Content="创建房间" Margin="10,375,0,0" VerticalAlignment="Top" Height="33" Width="109" Click="btn_CreateLobby_Click"/>
                 <TextBox x:Name="tb_IpOrDomain" HorizontalAlignment="Left" Margin="10,452,0,0" Text="127.0.0.1" TextWrapping="Wrap" VerticalAlignment="Top" Width="213"/>
                 <TextBox x:Name="tb_TcpPort" HorizontalAlignment="Left" Margin="228,452,0,0" Text="2334" TextWrapping="Wrap" VerticalAlignment="Top" Width="68"/>
                 <TextBox x:Name="tb_UdpPort" HorizontalAlignment="Left" Margin="228,489,0,0" Text="2333" TextWrapping="Wrap" VerticalAlignment="Top" Width="68"/>
                 <TextBlock x:Name="txt_server" HorizontalAlignment="Left" Margin="12,430,0,0" Text="服务器" TextWrapping="Wrap" VerticalAlignment="Top"/>
                 <Button x:Name="btn_ChangeServer" Content="确认并验证服务器" Margin="12,489,0,0" VerticalAlignment="Top" Height="32" Width="211" Click="btn_ChangeServer_Click"/>
                 <TextBlock x:Name="txt_status" HorizontalAlignment="Left" Margin="10,10,0,0" Text="服务器" TextWrapping="Wrap" VerticalAlignment="Top"/>
+                <Button x:Name="btn_RefreshLobbies" Content="刷新" Margin="228,375,0,0" VerticalAlignment="Top" Height="33" Width="68" Click="btn_RefreshLobbies_Click"/>
             </Grid>
         </StackPanel>
     </Grid>

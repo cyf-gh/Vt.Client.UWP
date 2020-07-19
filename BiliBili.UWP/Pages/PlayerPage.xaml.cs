@@ -102,6 +102,7 @@ namespace BiliBili.UWP.Pages
                     return;
                 }
                 gv_play.SelectedIndex -= 1;
+                OpenVideo();
             }
             void PrevP()
             {
@@ -110,6 +111,14 @@ namespace BiliBili.UWP.Pages
                     return;
                 }
                 gv_play.SelectedIndex += 1;
+                OpenVideo();
+            }
+            void SelectP( int index )
+            {
+                if ( index >= 0 && index < gv_play.Items.Count  ) {
+                    gv_play.SelectedIndex = index;
+                    OpenVideo();
+                }
             }
             void ExitPlayer()
             {
@@ -523,7 +532,8 @@ namespace BiliBili.UWP.Pages
                 VtCore.Handle.PlayerEvents.IsPause += IsPause;
                 VtCore.Handle.PlayerEvents.NextP += NextP;
                 VtCore.Handle.PlayerEvents.PrevP += PrevP;
-                VtCore.Handle.PlayerEvents.ExitPlayer += ExitPlayer;
+                VtCore.Handle.PlayerEvents.ExitVideo += ExitPlayer;
+                VtCore.Handle.PlayerEvents.SelectP += SelectP;
             #endregion
             base.OnNavigatedTo(e);
             CoreWindow.GetForCurrentThread().KeyDown += PlayerPage_KeyDown;

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using stLib.Common;
@@ -14,27 +15,35 @@ namespace Vt.Client.Corel {
         static public VtClientCore Handle = new VtClientCore();
     }
 
-    public enum VtStatus {
+    public enum LobbyStatus {
         Idle,
         InLobbyGuest,
         InLobbyHost
+    }
+
+    public enum VideoStatus {
+        AllSame,
+        DifferentPart,
+        AllDifferent
     }
 
     public class VtClientCore {
         public PlayerEvents PlayerEvents { get; set; }
 
         public bool IsHost = false;
-        private VtStatus Status;
+        private LobbyStatus Status;
         private IPPort curServer;
 
+        private int curP = 0;
+        private string curVideoMD5 = "";
         public VtClientCore()
         {
             // fake
             curServer = new IPPort();
-            Status = VtStatus.Idle;
+            Status = LobbyStatus.Idle;
         }
 
-        public VtStatus GetStatus()
+        public LobbyStatus GetStatus()
         {
             return Status;
         }
@@ -46,23 +55,91 @@ namespace Vt.Client.Corel {
         public void SendVideoData( string lsJson, int index )
         {
             /// TODO:通过某种协议发送报文
+            curVideoMD5 = stLib.Encrypt.MD5.GetMD5HashFromString( lsJson );
         }
+        public void SetNewVideoMd5( string lsJson, int index )
+        {
+            curVideoMD5 = stLib.Encrypt.MD5.GetMD5HashFromString( lsJson );
+            curP = index;
+        }
+        /// <summary>
+        /// 只用于Guest检查当前视频是否与Host相同
+        /// </summary>
+        /// <param name="lsJson"></param>
+        /// <param name="index"></param>
+        /// <returns></returns>
+        public VideoStatus VideoStatus( string lsJson, int index )
+        {
+            if ( curVideoMD5 == stLib.Encrypt.MD5.GetMD5HashFromString( lsJson ) && index == curP ) {
+                return Corel.VideoStatus.AllSame;
+            } else if ( curVideoMD5 == stLib.Encrypt.MD5.GetMD5HashFromString( lsJson ) && index != curP ) {
+                return Corel.VideoStatus.DifferentPart;
+            } else {
+                return Corel.VideoStatus.AllDifferent;
+            }
+        }
+        /// <summary>
+        /// 同步视频
+        /// 当收到服务器端的需要修改视频包时，进行调用
+        /// </summary>
+        /// <param name="lsJson"></param>
+        /// <param name="index"></param>
+        public void SyncSameVideo( string lsJson, int index )
+        {
+            switch ( VideoStatus( lsJson, index ) ) {
+                case Corel.VideoStatus.AllSame:
+                    break;
+                case Corel.VideoStatus.DifferentPart:
+                    PlayerEvents.SelectP( index );
+                    break;
+                case Corel.VideoStatus.AllDifferent:
+                    PlayerEvents.ExitVideo();
+                    PlayerEvents.OpenNewVideo( lsJson, index );
+                    break;
+                default:
+                    break;
+            }
+        }
+
         /// <summary>
         /// 创建房间并发送报文
         /// </summary>
         /// <param name="name"></param>
-        public void CreateLobby( string name )
+        public async Task<string> CreateLobby( string hostName, string lobbyname, string passwd )
         {
-            Status = VtStatus.InLobbyHost;
+            Status = LobbyStatus.InLobbyHost;
+            using ( HttpResponseMessage response =
+                await client.GetAsync( $"{ Domain()}/lobby/create?hostname={hostName}&lobbyname={lobbyname}&passwd={passwd}" ).ConfigureAwait( false )
+            )
+            using ( HttpContent content = response.Content ) {
+                return await content.ReadAsStringAsync();
+            }
         }
+        HttpClient client = new HttpClient();
         /// <summary>
-        /// 进入房间
+        /// 
         /// </summary>
+        /// <param name="userName"></param>
         /// <param name="lobbyName"></param>
         /// <param name="passwd"></param>
-        public void EnterLobby( string lobbyName, string passwd )
+        /// <return>
+        /// "OK"
+        /// "PASSWORD_INCORRENT"
+        /// "NO_SUCH_LOBBY"
+        /// </return>
+        /// 
+        public string Domain()
         {
-
+            return $"http://{curServer.IP}:{curServer.TcpPort}";
+        }
+        public async Task<string> EnterLobby( string userName, string lobbyName, string passwd )
+        {
+            using ( HttpResponseMessage response =
+                await client.GetAsync( $"{Domain()}/lobby/enter?username={userName}&lobbyname={lobbyName}&passwd={passwd}" ).ConfigureAwait( false )
+                )
+            using ( HttpContent content = response.Content ) {
+                return await content.ReadAsStringAsync();
+            }
         }
         public void ChangeServer( string ipOrDomain, string tcp, string udp )
         {
@@ -72,27 +149,28 @@ namespace Vt.Client.Corel {
 
         public async Task<List<string>> GetLobbies()
         {
-            try {
-                return await Task.Run( () => {
-                    try {
-                        return StringHelper.ParseComData( TcpClient_.SendMessage_ShortConnect( "query_lobbies@", curServer ) );
-                    } catch {
-                        return null;
-                    }
-                } );
-            } catch ( Exception ex ) {
-                stLogger.Log( ex );
-                throw ex;
+            using ( HttpResponseMessage response =
+                await client.GetAsync( $"{Domain()}/lobbies" ).ConfigureAwait( false )
+            )
+            using ( HttpContent content = response.Content ) {
+                return StringHelper.ParseComData( await content.ReadAsStringAsync() );
             }
         }
 
-        public async Task<string> CheckServerAvailable() {
-            return await Task.Run( () => {
+        public async Task<string> CheckServerAvailable()
+        {
+            return await Task.Run( async () => {
                 try {
                     UdpClient_ udpClient_ = new UdpClient_();
-                    string tcpRe = TcpClient_.SendMessage_ShortConnect( "ping@", curServer );
+                    string tcpRe = "";             
+                    using ( HttpResponseMessage response =
+                        await client.GetAsync( $"{Domain()}/ping" ).ConfigureAwait( false )
+                    )
+                    using ( HttpContent content = response.Content ) {
+                        tcpRe = await content.ReadAsStringAsync();
+                    }
                     string udpRe = udpClient_.SendMessage( "ping@", curServer );
-                    if ( tcpRe != "OK") {
+                    if ( tcpRe != "OK" ) {
                         return "TCP端口不可用";
                     }
                     if ( udpRe != "OK" ) {
@@ -100,7 +178,7 @@ namespace Vt.Client.Corel {
                     }
                     return "OK";
                 } catch ( Exception ex ) {
-                    return $"发生错误：{ex.Message}" ;
+                    return $"发生错误：{ex.Message}";
                 }
             } );
         }

@@ -1,0 +1,24 @@
+﻿<Page
+    x:Class="BiliBili.UWP.Pages.Vt.Client.VtHomePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:BiliBili.UWP.Pages.Vt.Client"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid x:Name="vt">
+        <StackPanel>
+            <Grid  Background="{ThemeResource Bili-List-Background}" Height="1000" Width="1493">
+                <ListView x:Name="list_Lobbies" HorizontalAlignment="Left" Height="242" Margin="10,128,0,0" VerticalAlignment="Top" Width="286" Background="White" ItemClick="list_Lobbies_ItemClick"/>
+                <Button x:Name="btn_CreateLobby" Content="创建房间" Margin="10,375,0,0" VerticalAlignment="Top" Height="40" Width="109" Click="btn_CreateLobby_Click"/>
+                <TextBox x:Name="tb_IpOrDomain" HorizontalAlignment="Left" Margin="10,452,0,0" Text="127.0.0.1" TextWrapping="Wrap" VerticalAlignment="Top" Width="213"/>
+                <TextBox x:Name="tb_TcpPort" HorizontalAlignment="Left" Margin="228,452,0,0" Text="2334" TextWrapping="Wrap" VerticalAlignment="Top" Width="68"/>
+                <TextBox x:Name="tb_UdpPort" HorizontalAlignment="Left" Margin="228,489,0,0" Text="2333" TextWrapping="Wrap" VerticalAlignment="Top" Width="68"/>
+                <TextBlock x:Name="txt_server" HorizontalAlignment="Left" Margin="12,430,0,0" Text="服务器" TextWrapping="Wrap" VerticalAlignment="Top"/>
+                <Button x:Name="btn_ChangeServer" Content="确认并验证服务器" Margin="12,489,0,0" VerticalAlignment="Top" Height="32" Width="211" Click="btn_ChangeServer_Click"/>
+                <TextBlock x:Name="txt_status" HorizontalAlignment="Left" Margin="10,10,0,0" Text="服务器" TextWrapping="Wrap" VerticalAlignment="Top"/>
+            </Grid>
+        </StackPanel>
+    </Grid>
+</Page>

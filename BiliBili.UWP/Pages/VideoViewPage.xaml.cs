@@ -744,7 +744,7 @@ namespace BiliBili.UWP.Pages
 
         }
 
-        private void btn_Cancel_Cli(object sender, RoutedEventArgs e)
+        private void btn_Cancel_Click(object sender, RoutedEventArgs e)
         {
             gv_Play.SelectionMode = ListViewSelectionMode.None;
             gv_Play.IsItemClickEnabled = true;

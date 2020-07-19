@@ -627,7 +627,7 @@
     <Compile Include="Pages\VideoViewPage.xaml.cs">
       <DependentUpon>VideoViewPage.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Pages\Vt.Client\VideoInfoData.cs" />
+    <Compile Include="Pages\Vt.Client\StaticEventDef.cs" />
     <Compile Include="Pages\Vt.Client\Messagebox.cs" />
     <Compile Include="Pages\Vt.Client\VtHomePage.xaml.cs">
       <DependentUpon>VtHomePage.xaml</DependentUpon>

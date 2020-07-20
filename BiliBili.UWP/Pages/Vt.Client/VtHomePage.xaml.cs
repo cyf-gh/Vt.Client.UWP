@@ -20,6 +20,7 @@ using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Navigation;
 using BiliBili.UWP.Modules.BiliBili.UWP.Modules.UserCenterModels;
 using BiliBili.UWP.Api;
+using BiliBili.UWP.Pages.Vt.Client.Dialogs;
 
 // https://go.microsoft.com/fwlink/?LinkId=234238 上介绍了“空白页”项模板
 
@@ -33,10 +34,13 @@ namespace BiliBili.UWP.Pages.Vt.Client {
             this.InitializeComponent();
         }
 
-        private void Page_Loading( FrameworkElement sender, Object args )
+        private async void RefreshStatus( string name )
         {
-            VtCore.Handle.PlayerEvents.OpenNewVideo += StaticEventDef.OpenNewVideo;
-            VtCore.Handle.ChangeServer( tb_IpOrDomain.Text, tb_TcpPort.Text, tb_UdpPort.Text );
+            try {
+                txt_status.Text = await VtCore.Handle.WhereAmI( name );
+            } catch ( Exception ex ) {
+                Utils.ShowMessageToast( ex.Message );
+            }
             LoadLobbies();
         }
 
@@ -44,7 +48,7 @@ namespace BiliBili.UWP.Pages.Vt.Client {
         {
             try {
                 list_Lobbies.Items.Clear();
-                var lobs = await VtCore.Handle.GetLobbies();
+                var lobs = await VtCore.Handle.QueryLobbies();
                 if ( lobs == null || lobs.Count == 0 ) {
                     Utils.ShowMessageToast( "当前服务器中没有房间." );
                 } else {
@@ -53,64 +57,73 @@ namespace BiliBili.UWP.Pages.Vt.Client {
                     }
                 }
             } catch ( Exception ex ) {
-                Messagebox.Show( ex.Message );
+                VtUtils.Messagebox.Show( ex.Message, "错误" );
             }
         }
 
-        private async void btn_ChangeServer_Click( Object sender, RoutedEventArgs e )
-        {
-            VtCore.Handle.ChangeServer( tb_IpOrDomain.Text, tb_TcpPort.Text, tb_UdpPort.Text );
-            var ok = await VtCore.Handle.CheckServerAvailable();
-            Messagebox.Show( ok );
-            if ( ok == "OK" ) {  LoadLobbies(); }
-        }
 
         private async void btn_CreateLobby_Click( Object sender, RoutedEventArgs e )
         {
-            string name = "";
-            if ( !ApiHelper.IsLogin() ) {
-                Utils.ShowMessageToast( "检测到还未登录，将启用随机名" );
-                name = GuidHelper.CreateNewGuid().ToString();
-            } else {
-                name = await getUserName( ApiHelper.GetUserId() );
-            }
+            var name = await VtUtils.GetVtUserName();
             // TODO: 创建房间
             string lobbyName = $"{name}'s lobby";
-            Random random = new Random(Convert.ToInt32(Guid.NewGuid().ToString()));
-            string passwd = random.Next( 1000, 9999 ).ToString();
+            string passwd = VtCore.Handle.GetRandomPasswd();
             await VtCore.Handle.CreateLobby( name, lobbyName, passwd );
-            txt_status.Text = $"房间名：{lobbyName}\n密码：{passwd}";
+            RefreshStatus( name );
         }
 
-        private async Task<string> getUserName( string mid )
+        private async void list_Lobbies_ItemClick( Object sender, ItemClickEventArgs e )
         {
-            UserCenterAPI userCenterAPI = new UserCenterAPI();
-            var api = userCenterAPI.UserCenterDetail( mid );
-            var results = await api.Request();
-            UserCenterDetailModel UserCenterDetail;
-
-            if ( results.status ) {
-                var data = await results.GetData<UserCenterDetailModel>();
-                if ( data.success ) {
-                    UserCenterDetail = data.data;
-                    return UserCenterDetail.card.name;
-                } else {
-                    Utils.ShowMessageToast( data.message );
-                }
-            } else {
-                Utils.ShowMessageToast( results.message );
-            }
-            return "";
-        }
-
-        private void list_Lobbies_ItemClick( Object sender, ItemClickEventArgs e )
-        {
-
+            EnterPasswordDialog enterPasswordDialog = new EnterPasswordDialog( await VtUtils.GetVtUserName(), list_Lobbies.SelectedValue as string );
+            await enterPasswordDialog.ShowAsync();
         }
 
         private void btn_RefreshLobbies_Click( Object sender, RoutedEventArgs e )
         {
             LoadLobbies();
+        }
+
+        private async void btn_Settings_Click( Object sender, RoutedEventArgs e )
+        {
+            ServerSettingsDialog serverSettings = new ServerSettingsDialog();
+            switch ( await serverSettings.ShowAsync() ) {
+                case ContentDialogResult.None:
+                    break;
+                case ContentDialogResult.Primary:
+                    LoadLobbies();
+                    break;
+                case ContentDialogResult.Secondary:
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        private async void btn_ExitLobby_Click( Object sender, RoutedEventArgs e )
+        {
+            switch ( await VtCore.Handle.ExitLobby( await VtUtils.GetVtUserName() ) ) {
+                case "LOBBY_DELETED":
+                    VtUtils.Messagebox.Show("您是房主，房间已被解散。","退出房间提示");
+                    break;
+                case "LOBBY_EXIT":
+                    VtUtils.Messagebox.Show( "已退出房间", "退出房间提示" );
+                    break;
+                case "NO_SUCH_LOBBY":
+                    VtUtils.Messagebox.Show( "您不在任何的房间中", "退出房间提示" );
+                    break;
+            }
+        }
+
+        private async void Page_Loading( FrameworkElement sender, Object args )
+        {
+            VtCore.Handle.PlayerEvents.OpenNewVideo += StaticEventDef.OpenNewVideo;
+            list_Lobbies.IsItemClickEnabled = true;
+            RefreshStatus( await VtUtils.GetVtUserName() );
+        }
+
+        private async void Page_GotFocus( Object sender, RoutedEventArgs e )
+        {
+            RefreshStatus( await VtUtils.GetVtUserName() );
         }
     }
 }

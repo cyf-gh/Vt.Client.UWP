@@ -998,6 +998,7 @@ namespace BiliBili.UWP.Pages
                 }
 
                 #region VT_CLIENT_REFRESH_VIDEO_INFO
+                VtRefreshVideoInfo( ls, ( gv_Play.ItemsSource as List<pagesModel> ).IndexOf( info ) );
                 #endregion
 
                 MessageCenter.SendNavigateTo(NavigateMode.Play, typeof(PlayerPage), new object[] { ls, (gv_Play.ItemsSource as List<pagesModel>).IndexOf(info) });
@@ -1009,8 +1010,20 @@ namespace BiliBili.UWP.Pages
         {
 
         }
-
-
+        #region VT_CLIENT_REFRESH_VIDEO_INFO
+        private async void VtRefreshVideoInfo( List<PlayerModel> ls, int index )
+        {
+            var username = await VtUtils.GetVtUserName();
+            // 只有当为房主时才需要更新视频信息
+            if ( await VtCore.Handle.CheckStatus( username ) == LobbyStatus.Host ) {
+                if ( ls == null ) {
+                    VtCore.Handle.SendNewVideoInfo( username, new VideoDesc() );
+                } else {
+                    VtCore.Handle.SendNewVideoInfo( username, new VideoDesc( ls, index ) );
+                }
+            }
+        }
+        #endregion
 
         private void PostHistory()
         {
@@ -1277,9 +1290,6 @@ namespace BiliBili.UWP.Pages
 
         public void OpenPlayer(pagesModel info)
         {
-            #region VT_CLIENT_REFRESH_VIDEO_INFO
-
-            #endregion
 
             List<PlayerModel> ls = new List<PlayerModel>();
             int i = 1;
@@ -1350,6 +1360,9 @@ namespace BiliBili.UWP.Pages
                 }
             }
 
+            #region VT_CLIENT_REFRESH_VIDEO_INFO
+            VtRefreshVideoInfo( ls, ( gv_Play.ItemsSource as List<pagesModel> ).IndexOf( info ) );
+            #endregion
             MessageCenter.SendNavigateTo(NavigateMode.Play, typeof(PlayerPage), new object[] { ls, (gv_Play.ItemsSource as List<pagesModel>).IndexOf(info) });
             PostHistory();
         }

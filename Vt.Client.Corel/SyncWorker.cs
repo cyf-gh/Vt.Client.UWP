@@ -130,17 +130,6 @@ namespace Vt.Client.Core {
                 throw;
             }
         }
-
-        public string Return()
-        {
-            try {
-                return TcpClient_.SendMessage_ShortConnect( "delete_lobby@" + LobbyName, ipport );
-            } catch ( Exception ex ) {
-                stLogger.Log( ex );
-                throw;
-            }
-        }
-
         public List<string> QueryViewers()
         {
             try {
@@ -149,30 +138,6 @@ namespace Vt.Client.Core {
                 stLogger.Log( ex );
                 throw;
             }
-        }
-
-        public string Leave( string myName )
-        {
-            try {
-                return TcpClient_.SendMessage_ShortConnect( 
-                    new ypmPackage( "exit_lobby",
-                                    new string[] {
-                                        myName, LobbyName
-                                    }).ToString()
-                    , ipport );
-            } catch ( Exception ex ) {
-                stLogger.Log( ex );
-                throw;
-            }
-        }
-    }
-
-    public class Viewer {
-        private readonly String name;
-
-        public Viewer( string name )
-        {
-            this.name = name;
         }
     }
 }

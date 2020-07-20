@@ -41,7 +41,7 @@
     <UseVSHostingProcess>false</UseVSHostingProcess>
     <ErrorReport>prompt</ErrorReport>
     <Prefer32Bit>true</Prefer32Bit>
-    <Optimize>true</Optimize>
+    <Optimize>false</Optimize>
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <CodeAnalysisIgnoreGeneratedCode>false</CodeAnalysisIgnoreGeneratedCode>
     <CodeAnalysisRuleSet>ManagedMinimumRules.ruleset</CodeAnalysisRuleSet>
@@ -628,8 +628,14 @@
     <Compile Include="Pages\VideoViewPage.xaml.cs">
       <DependentUpon>VideoViewPage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Pages\Vt.Client\Dialogs\EnterPasswordDialog.xaml.cs">
+      <DependentUpon>EnterPasswordDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Pages\Vt.Client\Dialogs\ServerSettingsDialog.xaml.cs">
+      <DependentUpon>ServerSettingsDialog.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Pages\Vt.Client\StaticEventDef.cs" />
-    <Compile Include="Pages\Vt.Client\Messagebox.cs" />
+    <Compile Include="Pages\Vt.Client\Utils.cs" />
     <Compile Include="Pages\Vt.Client\VtHomePage.xaml.cs">
       <DependentUpon>VtHomePage.xaml</DependentUpon>
     </Compile>
@@ -1155,6 +1161,14 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="Pages\VideoViewPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Pages\Vt.Client\Dialogs\EnterPasswordDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Pages\Vt.Client\Dialogs\ServerSettingsDialog.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

@@ -46,6 +46,8 @@ using Vt.Client.Corel;
 using Vt.Client.Core;
 using NLog;
 using BiliBili.UWP.Pages.Vt.Client;
+using System.ComponentModel;
+using System.Threading;
 // “空白页”项模板在 http://go.microsoft.com/fwlink/?LinkId=234238 上有介绍
 
 namespace BiliBili.UWP.Pages {
@@ -121,7 +123,9 @@ namespace BiliBili.UWP.Pages {
         {
             #region VT_CLIENT_REFRESH_VIDEO_INFO
             await VtEmptyVideoInfo();
+            VtCore.Video.IsInVideo = false;
             #endregion
+
             Frame.GoBack();
         }
 
@@ -133,7 +137,16 @@ namespace BiliBili.UWP.Pages {
                 VtCore.Handle.SendNewVideoInfo( username, new VideoDesc() );
             }
         }
+        private void DoWork_Handler( object sender, DoWorkEventArgs e )
+        {
+            while ( true ) {
+                Thread.Sleep(225);
+
+            }
+        }
+
         #endregion
+        //////////////////////////////////////////////////////////////////////////////////////
 
         MediaPlayer mediaPlayer;
         MediaPlayer mediaPlayer_audio;
@@ -160,7 +173,6 @@ namespace BiliBili.UWP.Pages {
                 _systemMediaTransportControls.IsPauseEnabled = true;
                 _systemMediaTransportControls.ButtonPressed += _systemMediaTransportControls_ButtonPressed;
             }
-
         }
 
         private void MediaPlayer_VolumeChanged( MediaPlayer sender, object args )
@@ -177,9 +189,6 @@ namespace BiliBili.UWP.Pages {
             }
 
         }
-
-
-
 
         #region MediaPlayer事件
         private async void MediaPlayer_MediaOpened( MediaPlayer sender, object args )
@@ -464,6 +473,12 @@ namespace BiliBili.UWP.Pages {
                 case Windows.System.VirtualKey.F10:
                     CaptureVideo();
                     break;
+                #region VTCLIENT_STOP_SYNC_IN_VIDEO
+                case Windows.System.VirtualKey.V:
+                    // todo: stop sync
+                    VtUtils.SwitchSyncStatus();
+                    break;
+                #endregion
                 default:
                     break;
             }
@@ -479,8 +494,6 @@ namespace BiliBili.UWP.Pages {
             VtCore.Handle.PlayerEvents.JumpToCurrentLocation += JumpToCurrentLocation;
             VtCore.Handle.PlayerEvents.Pause += Pause;
             VtCore.Handle.PlayerEvents.Play += Play;
-            VtCore.Handle.PlayerEvents.GetCurrentPlayTimeLocation += GetCurrentPlayTimeLocation;
-            VtCore.Handle.PlayerEvents.IsPause += IsPause;
             VtCore.Handle.PlayerEvents.NextP += NextP;
             VtCore.Handle.PlayerEvents.PrevP += PrevP;
             VtCore.Handle.PlayerEvents.ExitVideo += ExitPlayer;
@@ -854,7 +867,11 @@ namespace BiliBili.UWP.Pages {
         List<string> sended = new List<string>();
         private void Timer_Date_Tick( object sender, object e )
         {
-
+            #region VT
+                VtCore.Video.Location = GetCurrentPlayTimeLocation();
+                VtCore.Video.IsPause = IsPause() ? "p" : "s";
+                VtCore.Video.IsInVideo = true;
+            #endregion
 
             if ( _PointerHideTime >= 5 && !hidePointerFlag ) {
                 Window.Current.CoreWindow.PointerCursor = null;

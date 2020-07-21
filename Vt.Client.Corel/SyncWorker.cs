@@ -11,132 +11,65 @@ using stLib.Net.Haste;
 using stLib.Log;
 using stLib.Net;
 using YPM.Packager;
+using Vt.Client.Corel;
 
 namespace Vt.Client.Core {
     public class SyncWorker {
-        /// <summary>
-        /// 初始化Sync
-        /// </summary>
-        /// <param name="lobbyName"></param>
-        /// <param name="nickName"></param>
-        /// <param name="ipport"></param>
-        /// <param name="playerEvents">需要重写的函数</param>
-        public SyncWorker( string lobbyName, string nickName, IPPort ipport, PlayerEvents playerEvents )
-        {
-            this.lobbyName = lobbyName;
-            this.nickName = nickName;
-            this.synccer = new UdpClient_();
-            this.ipport = ipport;
-            this.playerEvents = playerEvents;
-        }
-
-        UdpProtocolMaker protocolMaker = new UdpProtocolMaker();
-
+        private readonly String username;
+        private readonly Boolean ishost;
         private readonly IPPort ipport;
-        private bool stopFlag = false;
-        private readonly UdpClient_ synccer;
-        private readonly String lobbyName;
-        private readonly String nickName;
-        private readonly PlayerEvents playerEvents;
-
-        /// <summary>
-        /// 同时处理房主与客人的事件，因为房主永远会收到OK
-        /// Vt.Client主循环
-        /// </summary>
-        private void sendLocationPermantly()
+        private readonly String videoMd5;
+        TaskFactory task = new TaskFactory();
+        public Task SyncTaskHandle { get; set; } = null;
+        public SyncWorker( string username, IPPort ipport, string videoMd5,bool ishost = false )
         {
-            while ( !stopFlag ) {
-                try {
-                    Console.WriteLine( playerEvents.GetCurrentPlayTimeLocation() );
-                    Thread.Sleep( 900 ); // 发送间隔
-                    var recv = synccer.SendMessage(
-                        protocolMaker.MakePackageMsg(
-                            lobbyName,
-                            nickName,
-                            playerEvents.GetCurrentPlayTimeLocation(),
-                            playerEvents.IsPause() )
-                        , ipport );
-                    Console.WriteLine( recv );
-                    switch ( recv ) {
-                        case "OK":  // 房主永远收到OK
-                            continue;
-                        case "p":
-                            playerEvents.Pause();
-                            continue;
-                        case "s":
-                            playerEvents.Play();
-                            continue;
-                        default:
-                            if ( recv.Contains( ":" ) ) {
-                                playerEvents.JumpToCurrentLocation(recv);
-                            }
-                            continue;
-                    }
-                } catch ( Exception ex ) {
-                    stLogger.Log( "In sendLocationPermantly", ex );
-                    continue;
-                }
-            }
+            this.username = username;
+            this.ishost = ishost;
+            this.ipport = ipport;
+            this.videoMd5 = videoMd5;
         }
-        public Task SyncHandle { get; set; } = null;
+        private bool stopFlag = false;
+
         public void Do()
         {
-            TaskFactory taskFactory = new TaskFactory();
-            stopFlag = false;
-            SyncHandle = taskFactory.StartNew( sendLocationPermantly );
-        }
-
-        public void Resume()
-        {
-
-        }
-
-        public void Pause()
-        {
-
+            task.StartNew( syncHost );
         }
 
         public void Stop()
         {
-            if ( SyncHandle != null ) {
-                stopFlag = true;
+            stopFlag = true;
+        }
+
+        /// <summary>
+        /// 房主同步包发送
+        /// </summary>
+        private async void syncHost()
+        {
+            while ( !stopFlag ) {
+                try {
+                    Thread.Sleep( 900 );
+                    if ( VtCore.Handle.Syncing ) {
+                        await VtCore.Handle.SendSyncHost(username);
+                    }
+                } catch ( Exception ex ) {
+                    stLogger.Log( "In Sync Host", ex );
+                    continue;
+                }
             }
         }
-    }
 
-    public class LobbyBorrower {
-        private readonly IPPort ipport;
-        public LobbyBorrower( IPPort ipport, string lobbyName, string lobbyPassword )
+        private async void syncGuest()
         {
-            this.ipport = ipport;
-            LobbyName = lobbyName;
-            LobbyPassword = lobbyPassword;
-            LobbyName = lobbyName;
-            udpClient = new UdpClient_();
-        }
-
-        public String LobbyName { get; }
-
-        private UdpClient_ udpClient;
-
-        public String LobbyPassword { get; }
-
-        public string Lend( string msg )
-        {
-            try {
-                return TcpClient_.SendMessage_ShortConnect( msg, ipport );
-            } catch ( Exception ex ) {
-                stLogger.Log( ex );
-                throw;
-            }
-        }
-        public List<string> QueryViewers()
-        {
-            try {
-                return StringHelper.ParseComData( udpClient.SendMessage( "get_lobby_viewers@" + LobbyName, ipport ) );
-            } catch ( Exception ex ) {
-                stLogger.Log( ex );
-                throw;
+            while ( !stopFlag ) {
+                try {
+                    Thread.Sleep( 900 );
+                    if ( VtCore.Handle.Syncing ) {
+                        await VtCore.Handle.SendSyncGuest( username );
+                    }
+                } catch ( Exception ex ) {
+                    stLogger.Log( "In Sync Host", ex );
+                    continue;
+                }
             }
         }
     }

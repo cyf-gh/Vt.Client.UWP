@@ -16,6 +16,17 @@ namespace Vt.Client.Corel {
     /// </summary>
     public static class VtCore {
         static public VtClientCore Handle = new VtClientCore();
+        static public bool IsMentionedUsePCName = false;
+
+        static public class Video {
+            static public string Location { get; set; }
+            static public bool IsInVideo { get; set; } = false;
+            static public string IsPause { get; set; }
+
+            public const double Offset = 2;
+
+            public const double MagicOffset = 1.5;
+        }
     }
 
     public enum LobbyStatus {
@@ -44,7 +55,7 @@ namespace Vt.Client.Corel {
         public VtClientCore()
         {
             ReserveName = Environment.MachineName;
-            CurrentServer = new IPPort{ 
+            CurrentServer = new IPPort {
                 IP = "127.0.0.1",
                 TcpPort = "2334",
                 UdpPort = "2333"
@@ -59,7 +70,12 @@ namespace Vt.Client.Corel {
             };
         }
 
+        public SyncWorker CreateSyncworker( string username, bool ishost )
+        {
+            return new SyncWorker( username, CurrentServer, curVideoMD5, ishost );
+        }
 
+        public bool Syncing { get; set; } = false;
 
         /// <summary>
         /// 八位数字
@@ -74,6 +90,57 @@ namespace Vt.Client.Corel {
         {
             return stLib.Common.Random.Handle.GetInt32( 1000, 9999 ).ToString();
         }
+        public async Task SendSyncHost( string name )
+        {
+            if ( !VtCore.Video.IsInVideo ) {
+                return;
+            }
+            var location = VtCore.Video.Location;
+            var isPause = VtCore.Video.IsPause;
+            await httpClient.GetAsync( $"{Domain()}/sync/host?name={name}&location={location}&ispause={isPause}" );
+        }
+        public async Task SendSyncGuest( string guestname )
+        {
+            var res = await httpClient.GetAsync( $"{Domain()}/sync/guest?name={guestname}" );
+            var args = res.ResponseString.Split( ',' );
+
+            var md5 = args[0];
+            var ispause = args[1];
+            var location = args[2];
+
+            /// 1 视频是否相同
+            if ( md5 != curVideoMD5 ) {
+                if ( VtCore.Video.IsInVideo ) {
+                    VtCore.Handle.PlayerEvents.ExitVideo();
+                    //退出视频
+                }
+                // 询问新视频
+                // 打开新视频
+            }
+
+            /// 2 视频是否暂停
+            VtCore.Video.IsPause = ispause;
+
+            /// 3 视频位置是否正确
+            // hh:mm:ss
+            TimeSpan hostLoc = CreateFromString( location );
+            TimeSpan guestLoc = CreateFromString( VtCore.Video.Location );
+            var offset = Math.Abs( hostLoc.TotalSeconds - guestLoc.TotalSeconds );
+            if ( offset > VtCore.Video.Offset ) {
+                var targetLoc = new TimeSpan( 0, 0, System.Convert.ToInt32( hostLoc.TotalSeconds + VtCore.Video.MagicOffset ) );
+                // 切换视频位置
+            }
+        }
+
+        TimeSpan CreateFromString( string time )
+        {
+            var hhmmss = time.Split( ':' );
+            int hh = System.Convert.ToInt32( hhmmss[0] );
+            int mm = System.Convert.ToInt32( hhmmss[1] );
+            int ss = System.Convert.ToInt32( hhmmss[2] );
+            return new TimeSpan( hh, mm, ss );
+        }
+
         /// <summary>
         /// 发送视频Host视频信息
         /// </summary>
@@ -84,10 +151,11 @@ namespace Vt.Client.Corel {
             /// TODO:通过某种协议发送报文
             curVideoMD5 = stLib.Encrypt.MD5.GetMD5HashFromString( lsJson + index.ToString() );
         }
-        public void SetNewVideoMd5( string lsJson, int index )
+        public string SetNewVideoMd5( string lsJson, int index )
         {
             curVideoMD5 = stLib.Encrypt.MD5.GetMD5HashFromString( lsJson + index.ToString() );
             curP = index;
+            return curVideoMD5;
         }
         /// <summary>
         /// 只用于Guest检查当前视频是否与Host相同
@@ -130,15 +198,15 @@ namespace Vt.Client.Corel {
                     break;
             }
         }
-
+        public static string NotInLobbyCn = "你不在任何房间中";
         public async Task<string> WhereAmI( string username )
         {
             string showText = "";
             var res = await httpClient.GetAsync( $"{Domain()}/user/where?username={username}" );
             if ( res.ResponseString == "IDLE" ) {
-                return "你不在任何房间中";
+                return NotInLobbyCn;
             } else {
-                var strs = res.ResponseString.Split(',');
+                var strs = res.ResponseString.Split( ',' );
                 showText += $"房间名：{strs[0]}\n";
                 showText += $"密码：{strs[2]}\n";
                 showText += strs[1] == "HOST" ? "你是房主" : "你是观众";
@@ -149,7 +217,7 @@ namespace Vt.Client.Corel {
         _HttpClient httpClient = new _HttpClient();
         private bool IsOk( string res ) { return res == "OK"; }
 
-        public async void SendNewVideoInfo(string hostname, object videoDesc)
+        public async void SendNewVideoInfo( string hostname, object videoDesc )
         {
             var res = await httpClient.PostAsync( $"{Domain()}/lobby/update/videodesc?hostname={hostname}", videoDesc );
             if ( res.IsOk() ) {
@@ -161,7 +229,7 @@ namespace Vt.Client.Corel {
             return $"http://{CurrentServer.IP}:{CurrentServer.TcpPort}";
         }
 
-        public string Domain(IPPort info)
+        public string Domain( IPPort info )
         {
             return $"http://{info.IP}:{info.TcpPort}";
         }
@@ -226,13 +294,13 @@ namespace Vt.Client.Corel {
         /// <param name="tcpp"></param>
         /// <param name="udpp"></param>
         /// <returns></returns>
-        public async Task<string> CheckServerAvailable(string ip, string tcpp, string udpp)
+        public async Task<string> CheckServerAvailable( string ip, string tcpp, string udpp )
         {
             var info = new IPPort { IP = ip, TcpPort = tcpp, UdpPort = udpp };
             return await Task.Run( async () => {
                 try {
                     UdpClient_ udpClient_ = new UdpClient_();
-                    var res = await httpClient.GetAsync( $"{Domain(info)}/ping" );
+                    var res = await httpClient.GetAsync( $"{Domain( info )}/ping" );
                     string tcpRe = res.ResponseString;
                     string udpRe = udpClient_.SendMessage( "ping@", info );
                     if ( tcpRe != "OK" ) {

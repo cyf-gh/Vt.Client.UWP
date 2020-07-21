@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Vt.Client.Core;
 using Vt.Client.Corel;
 using Windows.UI.Popups;
 using Windows.UI.Xaml.Controls;
@@ -16,6 +17,7 @@ namespace BiliBili.UWP.Pages.Vt.Client {
     public class VideoDesc {
         public string ls;
         public int index;
+        public string md5;
         public VideoDesc()
         {
             ls = "";
@@ -25,6 +27,7 @@ namespace BiliBili.UWP.Pages.Vt.Client {
         {
             this.ls = JsonConvert.SerializeObject( ls );
             this.index = index;
+            md5 = VtCore.Handle.SetNewVideoMd5( this.ls, index );
         }
         public List<PlayerModel> ToLS()
         {
@@ -42,10 +45,16 @@ namespace BiliBili.UWP.Pages.Vt.Client {
         public static async Task<string> GetVtUserName()
         {
             var isLogin = ApiHelper.IsLogin();
-            if ( !isLogin ) {
+            if ( !isLogin && !VtCore.IsMentionedUsePCName ) {
                 Utils.ShowMessageToast( "检测到还未登录，将启用本机名" );
+                VtCore.IsMentionedUsePCName = true;
             }
             return isLogin ? await GetUserName() : VtCore.Handle.ReserveName;
+        }
+        public static void SwitchSyncStatus()
+        {
+            VtCore.Handle.Syncing = !VtCore.Handle.Syncing;
+            Utils.ShowMessageToast( VtCore.Handle.Syncing ? "开始同步" : "停止同步" );
         }
         /// <summary>
         /// 获取bilibli已登陆账户的名字
@@ -72,6 +81,23 @@ namespace BiliBili.UWP.Pages.Vt.Client {
             return "";
         }
 
+        public static async Task StartSync()
+        {
+            string username = await GetVtUserName();
+            var status = await VtCore.Handle.CheckStatus( username );
+            if ( status == LobbyStatus.Idle ) {
+                Messagebox.Show("你不在任何房间中，无法开始同步","错误");
+                return;
+            }
+            if ( sync != null ) {
+                sync.Stop();
+            }
+            sync = VtCore.Handle.CreateSyncworker( username, status == LobbyStatus.Host );
+            sync.Do();
+        }
+
+        private static SyncWorker sync;
+
         public static class Messagebox {
             static public async void Show( string message, string title )
             {
@@ -79,5 +105,6 @@ namespace BiliBili.UWP.Pages.Vt.Client {
                 await messageDialog.ShowAsync();
             }
         }
+
     }
 }

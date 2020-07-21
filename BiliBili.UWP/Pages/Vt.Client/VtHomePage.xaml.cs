@@ -38,6 +38,13 @@ namespace BiliBili.UWP.Pages.Vt.Client {
         {
             try {
                 txt_status.Text = await VtCore.Handle.WhereAmI( name );
+                // 如果在房间中，则允许开始同步
+                btn_startsync.IsEnabled = ( txt_status.Text != VtClientCore.NotInLobbyCn );
+                // 如果已退出房间，则一定为未开始同步状态
+                if ( !btn_startsync.IsEnabled ) {
+                    VtCore.Handle.Syncing = false;
+                }
+                btn_startsync.Content = VtCore.Handle.Syncing ? "停止同步" : "开始同步";
             } catch ( Exception ex ) {
                 Utils.ShowMessageToast( ex.Message );
             }
@@ -124,6 +131,13 @@ namespace BiliBili.UWP.Pages.Vt.Client {
         private async void Page_GotFocus( Object sender, RoutedEventArgs e )
         {
             RefreshStatus( await VtUtils.GetVtUserName() );
+        }
+
+        private async void btn_startsync_Click( Object sender, RoutedEventArgs e )
+        {
+            VtUtils.SwitchSyncStatus();
+            RefreshStatus( await VtUtils.GetVtUserName() );
+            await VtUtils.StartSync();
         }
     }
 }

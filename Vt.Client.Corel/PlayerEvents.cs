@@ -22,8 +22,6 @@ namespace Vt.Client.Core {
         /// <summary>
         /// 返回当前播放时间戳
         /// </summary>
-        public _GetCurrentPlayTimeLocation GetCurrentPlayTimeLocation { get; set; }
-        public _IsPause IsPause { get; set; }
         public _Play Play { get; set; }
         public _Pause Pause { get; set; }
         public _JumpToCurrentLocation JumpToCurrentLocation { get; set; }

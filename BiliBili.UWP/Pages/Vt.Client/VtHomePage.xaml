@@ -16,6 +16,7 @@
                 <Button x:Name="btn_RefreshLobbies" Content="刷新" Margin="242,328,0,0" VerticalAlignment="Top" Height="33" Width="54" Click="btn_RefreshLobbies_Click"/>
                 <Button x:Name="btn_ExitLobby" Content="退出当前房间" Margin="124,328,0,0" VerticalAlignment="Top" Height="33" Width="113" Click="btn_ExitLobby_Click"/>
                 <Button x:Name="btn_ServerSettings" Content="设置" Margin="10,402,0,0" VerticalAlignment="Top" Height="33" Width="70" Click="btn_Settings_Click" RenderTransformOrigin="0.496,0.538"/>
+                <Button x:Name="btn_startsync" Content="开始同步" Height="34" Margin="174,401,0,0" VerticalAlignment="Top" Width="122" Click="btn_startsync_Click"/>
             </Grid>
         </StackPanel>
     </Grid>

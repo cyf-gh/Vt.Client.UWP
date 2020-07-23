@@ -951,7 +951,7 @@ namespace BiliBili.UWP.Pages
             btn_Play_Click(sender, null);
         }
 
-        private void btn_Play_Click(object sender, RoutedEventArgs e)
+        private async void btn_Play_Click(object sender, RoutedEventArgs e)
         {
             if (gv_Play.Items.Count != 0)
             {
@@ -998,7 +998,9 @@ namespace BiliBili.UWP.Pages
                 }
 
                 #region VT_CLIENT_REFRESH_VIDEO_INFO
-                VtRefreshVideoInfo( ls, ( gv_Play.ItemsSource as List<pagesModel> ).IndexOf( info ) );
+                if ( await VtRefreshVideoInfo( ls, ( gv_Play.ItemsSource as List<pagesModel> ).IndexOf( info ) ) == false ) {
+                    return;
+                }
                 #endregion
 
                 MessageCenter.SendNavigateTo(NavigateMode.Play, typeof(PlayerPage), new object[] { ls, (gv_Play.ItemsSource as List<pagesModel>).IndexOf(info) });
@@ -1011,16 +1013,28 @@ namespace BiliBili.UWP.Pages
 
         }
         #region VT_CLIENT_REFRESH_VIDEO_INFO
-        private async void VtRefreshVideoInfo( List<PlayerModel> ls, int index )
+        private async Task<bool> VtRefreshVideoInfo( List<PlayerModel> ls, int index )
         {
-            var username = await VtUtils.GetVtUserName();
-            // 只有当为房主时才需要更新视频信息
-            if ( await VtCore.Handle.CheckStatus( username ) == LobbyStatus.Host ) {
-                if ( ls == null ) {
-                    VtCore.Handle.SendNewVideoInfo( username, new VideoDesc() );
-                } else {
-                    VtCore.Handle.SendNewVideoInfo( username, new VideoDesc( ls, index ) );
+            try {
+                var username = await VtUtils.GetVtUserName();
+                bool isHost = await VtCore.Handle.CheckStatus( username ) == LobbyStatus.Host;
+                if ( VtCore.Handle.Syncing && !isHost ) {
+                    Utils.ShowMessageToast( "你现在是观众并且处于同步状态！无法打开视频\n请先停止同步再尝试打开视频" );
+                    return false;
                 }
+                // 只有当为房主时才需要更新视频信息
+                if ( isHost ) {
+                    if ( ls == null ) {
+                        VtCore.Handle.SendNewVideoInfo( username, new VideoDesc() );
+                    } else {
+                        VtCore.Handle.SendNewVideoInfo( username, new VideoDesc( ls, index ) );
+                    }
+                } else {
+                    VtCore.Handle.SetNewVideoMd5( JsonConvert.SerializeObject( ls ), index );
+                }
+                return true;
+            } catch ( Exception ex ) {
+                return true;
             }
         }
         #endregion
@@ -1288,7 +1302,7 @@ namespace BiliBili.UWP.Pages
             OpenPlayer( info );
         }
 
-        public void OpenPlayer(pagesModel info)
+        public async void OpenPlayer(pagesModel info)
         {
 
             List<PlayerModel> ls = new List<PlayerModel>();
@@ -1361,7 +1375,9 @@ namespace BiliBili.UWP.Pages
             }
 
             #region VT_CLIENT_REFRESH_VIDEO_INFO
-            VtRefreshVideoInfo( ls, ( gv_Play.ItemsSource as List<pagesModel> ).IndexOf( info ) );
+            if ( await VtRefreshVideoInfo( ls, ( gv_Play.ItemsSource as List<pagesModel> ).IndexOf( info ) ) == false ) {
+                return;
+            }
             #endregion
             MessageCenter.SendNavigateTo(NavigateMode.Play, typeof(PlayerPage), new object[] { ls, (gv_Play.ItemsSource as List<pagesModel>).IndexOf(info) });
             PostHistory();

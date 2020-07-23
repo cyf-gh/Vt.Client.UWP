@@ -32,7 +32,11 @@ namespace Vt.Client.Core {
 
         public void Do()
         {
-            task.StartNew( syncHost );
+            if ( ishost ) {
+                task.StartNew( syncHost );
+            } else {
+                task.StartNew( syncGuest );
+            }
         }
 
         public void Stop()

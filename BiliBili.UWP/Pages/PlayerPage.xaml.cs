@@ -92,7 +92,10 @@ namespace BiliBili.UWP.Pages {
         }
         void JumpToCurrentLocation( string recv )
         {
-            mediaElement.MediaPlayer.PlaybackSession.Position = new TimeSpan( 0, 0, Convert.ToInt32( Convert.ToDouble( recv ) ) );
+            var hh = Convert.ToInt32( recv.Split(':')[0] );
+            var mm = Convert.ToInt32( recv.Split( ':' )[1] );
+            var ss = Convert.ToInt32( recv.Split( ':' )[2].Split('.')[0] );
+            mediaElement.MediaPlayer.PlaybackSession.Position = new TimeSpan( hh, mm, ss );
         }
         void NextP()
         {
@@ -122,8 +125,18 @@ namespace BiliBili.UWP.Pages {
         async void ExitPlayer()
         {
             #region VT_CLIENT_REFRESH_VIDEO_INFO
-            await VtEmptyVideoInfo();
+            if ( !VtCore.Video.NeedToExitVideo ) {
+                if ( status == LobbyStatus.Guest && VtCore.Handle.Syncing) {
+                    Utils.ShowMessageToast( "请先点击V键停止同步再退出视频！" );
+                    return;
+                }
+                if ( status == LobbyStatus.Host ) {
+                    await VtEmptyVideoInfo(); // 只有host会调用
+                } 
+            }
+
             VtCore.Video.IsInVideo = false;
+            VtCore.Video.NeedToExitVideo = false;
             #endregion
 
             Frame.GoBack();
@@ -144,6 +157,8 @@ namespace BiliBili.UWP.Pages {
 
             }
         }
+
+        LobbyStatus status;
 
         #endregion
         //////////////////////////////////////////////////////////////////////////////////////
@@ -490,15 +505,6 @@ namespace BiliBili.UWP.Pages {
         private DisplayRequest dispRequest = null;//保持屏幕常亮
         protected async override void OnNavigatedTo( NavigationEventArgs e )
         {
-            #region VT_CLIENT_BIND_PLAYER_EVENTS
-            VtCore.Handle.PlayerEvents.JumpToCurrentLocation += JumpToCurrentLocation;
-            VtCore.Handle.PlayerEvents.Pause += Pause;
-            VtCore.Handle.PlayerEvents.Play += Play;
-            VtCore.Handle.PlayerEvents.NextP += NextP;
-            VtCore.Handle.PlayerEvents.PrevP += PrevP;
-            VtCore.Handle.PlayerEvents.ExitVideo += ExitPlayer;
-            VtCore.Handle.PlayerEvents.SelectP += SelectP;
-            #endregion
             base.OnNavigatedTo( e );
             CoreWindow.GetForCurrentThread().KeyDown += PlayerPage_KeyDown;
             this.Frame.Visibility = Visibility.Visible;
@@ -517,7 +523,9 @@ namespace BiliBili.UWP.Pages {
                 await Task.Delay( 100 );
                 flag++;
             }
-
+            #region VT_GETISHOST
+            status = await VtUtils.IsHost();
+            #endregion
             // CheckNetwork();
             //await Task.sp_View(200);
             if ( e.NavigationMode == NavigationMode.New ) {
@@ -867,10 +875,34 @@ namespace BiliBili.UWP.Pages {
         List<string> sended = new List<string>();
         private void Timer_Date_Tick( object sender, object e )
         {
-            #region VT
-                VtCore.Video.Location = GetCurrentPlayTimeLocation();
-                VtCore.Video.IsPause = IsPause() ? "p" : "s";
-                VtCore.Video.IsInVideo = true;
+            #region VT_SYNC_TICK
+            if ( status == LobbyStatus.Guest ) { // isGuest
+                // 退出视频
+                if ( VtCore.Video.NeedToExitVideo ) {
+
+                    ExitPlayer();
+                }
+                // 切p
+                if ( VtCore.Video.NeedSwitchP ) {
+                    SelectP( VtCore.Video.Part );
+                    VtCore.Video.NeedSwitchP = false;
+                }
+                // 暂停
+                if ( VtCore.Video.Pause() ) {
+                    this.Pause();
+                } else {
+                    this.Play();
+                }
+                // 
+                if ( VtCore.Video.NeedToJumpLocation ) {
+                    this.JumpToCurrentLocation( VtCore.Video.Location );
+                    VtCore.Video.NeedToJumpLocation = false;
+                }
+            }
+            VtCore.Video.Location = GetCurrentPlayTimeLocation();
+            VtCore.Video.IsPause = IsPause() ? "p" : "s";
+            VtCore.Video.IsInVideo = true;
+            VtCore.Video.Part = gv_play.SelectedIndex;
             #endregion
 
             if ( _PointerHideTime >= 5 && !hidePointerFlag ) {
@@ -1610,6 +1642,10 @@ namespace BiliBili.UWP.Pages {
                 playNow = gv_play.SelectedItem as PlayerModel;
 
                 cb_Quity.ItemsSource = null;
+
+                #region VT_CHANGEPART
+                VtCore.Video.Part = gv_play.SelectedIndex;
+                #endregion
 
                 // PlayerEvent(gv_play.SelectedIndex);
                 OpenVideo();

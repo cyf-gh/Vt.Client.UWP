@@ -51,6 +51,13 @@ namespace BiliBili.UWP.Pages.Vt.Client {
             }
             return isLogin ? await GetUserName() : VtCore.Handle.ReserveName;
         }
+        public static async Task<LobbyStatus> IsHost() {
+            try {
+                return ( await VtCore.Handle.CheckStatus( await GetVtUserName() ) );
+            } catch {
+                return LobbyStatus.Idle;
+            }
+        }
         public static void SwitchSyncStatus()
         {
             VtCore.Handle.Syncing = !VtCore.Handle.Syncing;
@@ -81,6 +88,26 @@ namespace BiliBili.UWP.Pages.Vt.Client {
             return "";
         }
 
+        /// <summary>
+        /// 该函数应该于VT_CLIENT_REFRESH_VIDEO_INFO region中调用
+        /// 这个函数有两个功能
+        /// 如果是host，则发送数据
+        /// 如果是guest，则读取参数并打开视频
+        /// </summary>
+        /// <param name="lsJson"></param>
+        /// <param name="index"></param>
+        public static void OpenNewVideo( string lsJson, int index )
+        {
+            if ( VtCore.Handle.IsHost ) {
+                VtCore.Handle.SendVideoData( lsJson, index );
+            } else {
+                Utils.ShowMessageToast("已检测到房主播放了新视频，开始播放！");
+                VtCore.Handle.SetNewVideoMd5( lsJson, index );
+                MessageCenter.SendNavigateTo(
+                    NavigateMode.Play, typeof( PlayerPage ),
+                    new object[] { JsonConvert.DeserializeObject<List<PlayerModel>>( lsJson ), index } ); // NEED_TEST
+            }
+        }
         public static async Task StartSync()
         {
             string username = await GetVtUserName();

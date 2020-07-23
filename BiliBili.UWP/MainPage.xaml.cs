@@ -20,6 +20,7 @@ using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Vt.Client.Corel;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 using Windows.Graphics.Display;
@@ -286,6 +287,7 @@ namespace BiliBili.UWP
         }
        
         DispatcherTimer timer;
+        DispatcherTimer timerVt;
         protected async override void OnNavigatedTo(NavigationEventArgs e)
         {
 
@@ -302,6 +304,12 @@ namespace BiliBili.UWP
             timer.Interval = new TimeSpan(0, 0, 5);
             timer.Start();
             timer.Tick += Timer_Tick;
+            #region VT_OPEN_NEW_VIDEO_TIMER
+            timerVt = new DispatcherTimer();
+            timerVt.Interval = new TimeSpan( 0, 0, 1 );
+            timerVt.Start();
+            timerVt.Tick += Timer_TickVt;
+            #endregion
             MessageCenter.ChanageThemeEvent += MessageCenter_ChanageThemeEvent;
             MessageCenter.MianNavigateToEvent += MessageCenter_MianNavigateToEvent;
             MessageCenter.InfoNavigateToEvent += MessageCenter_InfoNavigateToEvent;
@@ -709,6 +717,21 @@ namespace BiliBili.UWP
             titleBar.InactiveBackgroundColor = ((SolidColorBrush)grid_Top.Background).Color;
             titleBar.ButtonInactiveBackgroundColor = ((SolidColorBrush)grid_Top.Background).Color;
         }
+            #region VT_OPEN_NEW_VIDEO
+        /// <summary>
+        /// 重新是否有新的信息
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void Timer_TickVt( object sender, object e )
+        {
+            if ( VtCore.NewVideo.Got ) {
+                VtUtils.OpenNewVideo( VtCore.NewVideo.Ls, VtCore.NewVideo.index );
+                VtCore.NewVideo.Got = false;
+            }
+        }
+                
+            #endregion
         /// <summary>
         /// 重新是否有新的信息
         /// </summary>
@@ -718,7 +741,7 @@ namespace BiliBili.UWP
         {
             //if (ApiHelper.IsLogin())
             //{
-            if (await HasMessage())
+            if ( await HasMessage())
             {
                 await this.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
                 {

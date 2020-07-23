@@ -81,7 +81,11 @@ namespace BiliBili.UWP.Pages.Vt.Client {
 
         private async void list_Lobbies_ItemClick( Object sender, ItemClickEventArgs e )
         {
-            EnterPasswordDialog enterPasswordDialog = new EnterPasswordDialog( await VtUtils.GetVtUserName(), list_Lobbies.SelectedValue as string );
+            if ( btn_startsync.IsEnabled ) {
+                Utils.ShowMessageToast( "你已在某个房间中，请先退出当前房间！" );
+                return;
+            }
+            EnterPasswordDialog enterPasswordDialog = new EnterPasswordDialog( await VtUtils.GetVtUserName(), e.ClickedItem as string );
             await enterPasswordDialog.ShowAsync();
         }
 
@@ -123,7 +127,6 @@ namespace BiliBili.UWP.Pages.Vt.Client {
 
         private async void Page_Loading( FrameworkElement sender, Object args )
         {
-            VtCore.Handle.PlayerEvents.OpenNewVideo += StaticEventDef.OpenNewVideo;
             list_Lobbies.IsItemClickEnabled = true;
             RefreshStatus( await VtUtils.GetVtUserName() );
         }

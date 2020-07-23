@@ -19,13 +19,27 @@ namespace Vt.Client.Corel {
         static public bool IsMentionedUsePCName = false;
 
         static public class Video {
-            static public string Location { get; set; }
+            static public string Location { get; set; } = "00:00:00.00";
             static public bool IsInVideo { get; set; } = false;
             static public string IsPause { get; set; }
-
+            static public bool Pause() { return Video.IsPause == "p"; }
             public const double Offset = 2;
 
             public const double MagicOffset = 1.5;
+            /// <summary>
+            /// 是否需要退出视频
+            /// </summary>
+            static public bool NeedToExitVideo { get; set; } = false;
+
+            static public bool NeedToJumpLocation { get; set; } = false;
+            
+            static public bool NeedSwitchP { get;set; } = false;
+            static public int Part { get; set; } = -1;
+        }
+        static public class NewVideo {
+            static public bool Got = false;
+            static public string Ls = "";
+            static public int index = -1;
         }
     }
 
@@ -45,7 +59,6 @@ namespace Vt.Client.Corel {
     /// 负责收发报文的操作。
     /// </summary>
     public class VtClientCore {
-        public PlayerEvents PlayerEvents { get; set; } = new PlayerEvents();
         public bool IsHost = false;
         public IPPort CurrentServer { get; set; }
 
@@ -97,48 +110,73 @@ namespace Vt.Client.Corel {
             }
             var location = VtCore.Video.Location;
             var isPause = VtCore.Video.IsPause;
-            await httpClient.GetAsync( $"{Domain()}/sync/host?name={name}&location={location}&ispause={isPause}" );
+            var part = VtCore.Video.Part;
+            await httpClient.GetAsync( $"{Domain()}/sync/host?name={name}&location={location}&ispause={isPause}&p={part}" );
         }
         public async Task SendSyncGuest( string guestname )
         {
             var res = await httpClient.GetAsync( $"{Domain()}/sync/guest?name={guestname}" );
             var args = res.ResponseString.Split( ',' );
 
+            if ( res.IsErr() ) {
+                stLogger.Log( $"Err In SendSyncGuest with arguements: { guestname }" );
+                return;
+            }
+
             var md5 = args[0];
             var ispause = args[1];
             var location = args[2];
+            var index = args[3] == "\0" ? VtCore.Video.Part : System.Convert.ToInt32( args[3] ); // 似乎只有1p的视频part为0
+
+            // 房主未在任何房间中，则不做操作
+            if ( md5 == "" ) { return; }
 
             /// 1 视频是否相同
             if ( md5 != curVideoMD5 ) {
-                if ( VtCore.Video.IsInVideo ) {
-                    VtCore.Handle.PlayerEvents.ExitVideo();
-                    //退出视频
+                VtCore.Video.NeedToExitVideo = VtCore.Video.IsInVideo; // 如果在视频里，则退出
+                                                                       // 退出由PlayerPage的VT_SYNC_TICK region处理
+                                                                       // 询问新视频
+                var resVideoDesc = await httpClient.GetAsync( $"{Domain()}/lobby/videodesc?name={guestname}" );
+
+                if ( resVideoDesc.IsErr() ) {
+                    stLogger.Log( $"Err In SendSyncGuest with arguements: { guestname }" );
+                    return;
                 }
-                // 询问新视频
+                var argsVideoDesc = resVideoDesc.ResponseString.Split( '`' );
+                VtCore.NewVideo.Ls = argsVideoDesc[0];
+                VtCore.NewVideo.index = System.Convert.ToInt32( argsVideoDesc[1] == "\0" ? "0" : argsVideoDesc[1] );
+                VtCore.NewVideo.Got = true;
                 // 打开新视频
             }
 
-            /// 2 视频是否暂停
+            // 视频p数是否一致
+            if ( VtCore.Video.Part != index ) {
+                VtCore.Video.Part = index;
+                VtCore.Video.NeedSwitchP = true;
+            }
+
+            /// 3 视频是否暂停
             VtCore.Video.IsPause = ispause;
 
-            /// 3 视频位置是否正确
+            /// 4 视频位置是否正确
             // hh:mm:ss
             TimeSpan hostLoc = CreateFromString( location );
             TimeSpan guestLoc = CreateFromString( VtCore.Video.Location );
             var offset = Math.Abs( hostLoc.TotalSeconds - guestLoc.TotalSeconds );
             if ( offset > VtCore.Video.Offset ) {
                 var targetLoc = new TimeSpan( 0, 0, System.Convert.ToInt32( hostLoc.TotalSeconds + VtCore.Video.MagicOffset ) );
-                // 切换视频位置
+                VtCore.Video.Location = targetLoc.ToString();
+                VtCore.Video.NeedToJumpLocation = true;
             }
         }
 
         TimeSpan CreateFromString( string time )
         {
             var hhmmss = time.Split( ':' );
-            int hh = System.Convert.ToInt32( hhmmss[0] );
-            int mm = System.Convert.ToInt32( hhmmss[1] );
-            int ss = System.Convert.ToInt32( hhmmss[2] );
-            return new TimeSpan( hh, mm, ss );
+            var hh = System.Convert.ToInt32( hhmmss[0] );
+            var mm = System.Convert.ToInt32( hhmmss[1] );
+            var ss = System.Convert.ToInt32( hhmmss[2].Split( '.' )[0] );
+            return new TimeSpan( 0, hh, mm, ss, 0 );
         }
 
         /// <summary>
@@ -173,31 +211,6 @@ namespace Vt.Client.Corel {
                 return Corel.VideoStatus.AllDifferent;
             }
         }
-        /// <summary>
-        /// Guest only
-        /// 同步视频
-        /// 当收到服务器端的需要修改视频包时，进行调用
-        /// </summary>
-        /// <param name="lsJson"></param>
-        /// <param name="index"></param>
-        public void SyncSameVideo( string lsJson, int index )
-        {
-            switch ( VideoStatus( lsJson, index ) ) {
-                case Corel.VideoStatus.AllSame:
-                    break;
-                case Corel.VideoStatus.DifferentPart:
-                    PlayerEvents.SelectP( index );
-                    SetNewVideoMd5( lsJson, index );
-                    break;
-                case Corel.VideoStatus.AllDifferent:
-                    PlayerEvents.ExitVideo();
-                    PlayerEvents.OpenNewVideo( lsJson, index );
-                    SetNewVideoMd5( lsJson, index );
-                    break;
-                default:
-                    break;
-            }
-        }
         public static string NotInLobbyCn = "你不在任何房间中";
         public async Task<string> WhereAmI( string username )
         {
@@ -209,13 +222,13 @@ namespace Vt.Client.Corel {
                 var strs = res.ResponseString.Split( ',' );
                 showText += $"房间名：{strs[0]}\n";
                 showText += $"密码：{strs[2]}\n";
+                showText += "身份：";
                 showText += strs[1] == "HOST" ? "你是房主" : "你是观众";
             }
             return showText;
         }
 
         _HttpClient httpClient = new _HttpClient();
-        private bool IsOk( string res ) { return res == "OK"; }
 
         public async void SendNewVideoInfo( string hostname, object videoDesc )
         {
@@ -249,7 +262,6 @@ namespace Vt.Client.Corel {
         }
         public async Task<string> ExitLobby( string userName )
         {
-            // TODO:需要关闭UDP同步
             var res = await httpClient.GetAsync( $"{Domain()}/lobby/exit?username={userName}" );
             return res.ResponseString;
         }

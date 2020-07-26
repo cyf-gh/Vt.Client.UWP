@@ -306,7 +306,7 @@ namespace BiliBili.UWP
             timer.Tick += Timer_Tick;
             #region VT_OPEN_NEW_VIDEO_TIMER
             timerVt = new DispatcherTimer();
-            timerVt.Interval = new TimeSpan( 0, 0, 1 );
+            timerVt.Interval = new TimeSpan( 0, 0, 2 );
             timerVt.Start();
             timerVt.Tick += Timer_TickVt;
             #endregion
